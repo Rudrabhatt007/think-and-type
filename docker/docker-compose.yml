@@ -1,0 +1,44 @@
+services:
+  redis:
+    image: redis:alpine
+    container_name: think_type_redis
+    expose:
+      - 6379
+    restart: always
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: think_type_backend
+    expose:
+      - 8000
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:-super-secret-token-389fhnv3r823nhd92}
+    depends_on:
+      - redis
+    restart: always
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: think_type_frontend
+    expose:
+      - 80
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    container_name: think_type_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    restart: always
