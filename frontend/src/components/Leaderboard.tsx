@@ -68,14 +68,14 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
             <h1 className="text-3xl md:text-5xl font-black text-white uppercase tracking-widest text-shadow-lg mb-2 text-center break-words px-2">
               {winner?.username}
             </h1>
-            <p className="text-lg md:text-2xl font-bold text-amber-400 text-center">GRAND CHAMPION • {winner?.score} PTS</p>
+            <p className="text-lg md:text-2xl font-bold text-amber-400 text-center">CHAMPION • {winner?.score} PTS</p>
           </motion.div>
 
           <GlassCard className="w-full max-w-2xl bg-slate-900/80 border-slate-700/50 p-6 mt-8">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest text-center mb-4">Final Standings</h3>
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[440px] overflow-y-auto pr-1">
               {sortedPlayers.map((player, idx) => (
-                <div key={player.user_id} className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
+                <div key={player.user_id} className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5 mr-0.5">
                   <div className="flex items-center gap-4">
                     <span className={`w-8 h-8 rounded-full flex items-center justify-center font-black ${idx === 0 ? 'bg-amber-500 text-slate-900' : idx === 1 ? 'bg-slate-300 text-slate-900' : 'bg-slate-800 text-slate-400'}`}>
                       #{idx + 1}
