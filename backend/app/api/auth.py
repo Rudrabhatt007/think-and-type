@@ -75,14 +75,6 @@ async def guest_login(request: GuestLoginRequest):
     """Logs in or registers a new guest profile by name and returns a JWT token"""
     db_client = get_db()
     
-    # Check for existing name to avoid constraint errors
-    existing = db_client.table("profiles").select("id").eq("username", request.username).execute()
-    if existing.data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="This name is already taken in the database. Please use a different First Name or Last Name."
-        )
-        
     # Write a new profile record to Supabase
     new_profile = {
         "username": request.username,

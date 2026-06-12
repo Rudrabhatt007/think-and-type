@@ -220,6 +220,14 @@ def calculate_round_scores(letter: str, submissions: List[Dict[str, Any]]) -> Li
             if not normalized or normalized[0].upper() != letter_upper:
                 # Doesn't start with the correct letter or is empty
                 continue
+
+            # Min 2 characters for 'name' and 'thing' categories
+            if cat in ["name", "thing"] and len(normalized) < 2:
+                continue
+
+            # Cannot submit the name of the category itself
+            if normalized == cat:
+                continue
                 
             # Dictionary validation for 'animal' category
             if cat == "animal":

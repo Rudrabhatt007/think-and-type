@@ -105,6 +105,25 @@ async def join_game(
         player_query = db_client.table("game_players").select("*").eq("game_id", game_id).eq("user_id", str(current_user.id)).execute()
         
         if not player_query.data:
+            # 2a. Check if username is already taken in this specific game room
+            current_players = db_client.table("game_players").select("profiles(username)").eq("game_id", game_id).execute()
+            taken_names = []
+            for cp in current_players.data:
+                if cp.get("profiles") and cp["profiles"].get("username"):
+                    taken_names.append(cp["profiles"]["username"].strip().lower())
+            
+            # Also check if the host has this username
+            if game_data.get("host_id"):
+                host_query = db_client.table("profiles").select("username").eq("id", game_data["host_id"]).execute()
+                if host_query.data:
+                    taken_names.append(host_query.data[0]["username"].strip().lower())
+                    
+            if current_user.username.strip().lower() in taken_names:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"The username '{current_user.username}' is already taken in this room. Please choose a different name."
+                )
+
             # Join player to game
             player_data = {
                 "game_id": game_id,

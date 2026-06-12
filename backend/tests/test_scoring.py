@@ -141,3 +141,34 @@ def test_scoring_mapbox_place_validation():
         ]
         scored = calculate_round_scores(letter, submissions)
         assert scored[0]["points"] == 10  # Case-insensitive: "monaco" == "monaco" ✓
+
+def test_scoring_min_two_characters():
+    # 'name' and 'thing' categories require at least 2 characters
+    letter = "A"
+    submissions = [
+        {"user_id": "u1", "category": "name", "answer_text": "A", "is_valid": True, "points": 0},      # too short
+        {"user_id": "u2", "category": "name", "answer_text": "Ab", "is_valid": True, "points": 0},     # valid
+        {"user_id": "u3", "category": "thing", "answer_text": "A", "is_valid": True, "points": 0},     # too short
+        {"user_id": "u4", "category": "thing", "answer_text": "Ax", "is_valid": True, "points": 0},    # valid
+    ]
+    scored = calculate_round_scores(letter, submissions)
+    assert scored[0]["points"] == 0
+    assert scored[1]["points"] == 10
+    assert scored[2]["points"] == 0
+    assert scored[3]["points"] == 10
+
+def test_scoring_banned_category_names():
+    # Players cannot enter the name of the category itself
+    letter = "N"
+    submissions = [
+        {"user_id": "u1", "category": "name", "answer_text": "name", "is_valid": True, "points": 0},
+    ]
+    scored = calculate_round_scores(letter, submissions)
+    assert scored[0]["points"] == 0
+
+    letter = "T"
+    submissions = [
+        {"user_id": "u1", "category": "thing", "answer_text": "thing", "is_valid": True, "points": 0},
+    ]
+    scored = calculate_round_scores(letter, submissions)
+    assert scored[0]["points"] == 0
