@@ -61,8 +61,8 @@ interface GeminiLogEntry {
   timestamp: string;
   room_code: string;
   round_number: number;
-  inputs: string[];
-  response: Record<string, any>;
+  inputs: Record<string, string[]>;
+  response: Record<string, Record<string, boolean>>;
   latency_ms: number;
   status_code: number;
   error: string;
@@ -158,6 +158,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     } catch (err: any) {
       alert(err.response?.data?.detail || "Failed to declare winner.");
     }
+  };
+
+  const formatInputs = (inputs: Record<string, string[]>) => {
+    if (!inputs || typeof inputs !== 'object') return '—';
+    return Object.entries(inputs)
+      .filter(([_, words]) => words && words.length > 0)
+      .map(([cat, words]) => `${cat}: [${words.join(', ')}]`)
+      .join(' | ');
+  };
+
+  const formatResponse = (response: Record<string, Record<string, boolean>>) => {
+    if (!response || typeof response !== 'object') return '—';
+    return Object.entries(response)
+      .filter(([_, val]) => val && typeof val === 'object')
+      .map(([cat, wordMap]) => {
+        const wordResults = Object.entries(wordMap)
+          .map(([word, isValid]) => `${word}: ${isValid ? '✓' : '✗'}`)
+          .join(', ');
+        return `${cat}: {${wordResults}}`;
+      })
+      .join(' | ');
   };
 
   // Fetch rooms on page change
@@ -934,8 +955,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               <h2 className="text-xs font-bold uppercase tracking-widest text-slate-300">
                 Gemini LLM Validation Logs
               </h2>
-              <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                Bulk AI request / response audit trail for "Thing" validation.
+              <p className="text-[10px] text-slate-550 font-semibold mt-0.5">
+                Bulk AI request / response audit trail for Place, Animal, and Thing validation.
               </p>
             </div>
           </div>
@@ -975,47 +996,56 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     </tr>
                   </thead>
                   <tbody>
-                    {geminiLogs.map((log, idx) => (
-                      <tr key={idx} className="border-b border-slate-900/40 hover:bg-white/[0.01] transition-all">
-                        <td className="py-2 px-3 text-[10px] text-slate-400 font-mono whitespace-nowrap">
-                          {new Date(log.timestamp).toLocaleTimeString()}
-                        </td>
-                        <td className="py-2 px-3 text-xs font-bold text-slate-200 font-mono">
-                          {log.room_code || '—'}
-                        </td>
-                        <td className="py-2 px-3 text-xs text-slate-300 font-mono">
-                          {log.round_number || '—'}
-                        </td>
-                        <td className="py-2 px-3 text-[11px] text-slate-300 font-mono max-w-[250px] truncate" title={log.inputs.join(', ')}>
-                          {log.inputs.join(', ')}
-                        </td>
-                        <td className="py-2 px-3 text-[10px] text-violet-300 font-mono max-w-[250px] truncate" title={JSON.stringify(log.response)}>
-                          {JSON.stringify(log.response)}
-                        </td>
-                        <td className="py-2 px-3 text-[10px] text-slate-400 font-mono">
-                          {log.latency_ms > 0 ? `${log.latency_ms}ms` : '—'}
-                        </td>
-                        <td className="py-2 px-3">
-                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
-                            log.status_code === 200
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                          }`}>
-                            {log.status_code || '—'}
-                          </span>
-                        </td>
-                        <td className="py-2 px-3">
-                          {log.cached ? (
-                            <span className="text-[9px] font-bold bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 uppercase">Cache</span>
-                          ) : (
-                            <span className="text-[9px] font-bold bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/20 uppercase">API</span>
-                          )}
-                        </td>
-                        <td className="py-2 px-3 text-[10px] text-red-400 max-w-[150px] truncate" title={log.error}>
-                          {log.error || '—'}
-                        </td>
-                      </tr>
-                    ))}
+                    {geminiLogs.map((log, idx) => {
+                      const formattedInputs = Array.isArray(log.inputs) 
+                        ? log.inputs.join(', ') 
+                        : formatInputs(log.inputs);
+                      const formattedResponse = (log.response && typeof log.response === 'object' && !Array.isArray(log.response) && Object.values(log.response).some(v => v && typeof v === 'object'))
+                        ? formatResponse(log.response as Record<string, Record<string, boolean>>)
+                        : JSON.stringify(log.response);
+
+                      return (
+                        <tr key={idx} className="border-b border-slate-900/40 hover:bg-white/[0.01] transition-all">
+                          <td className="py-2 px-3 text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                            {new Date(log.timestamp).toLocaleTimeString()}
+                          </td>
+                          <td className="py-2 px-3 text-xs font-bold text-slate-200 font-mono">
+                            {log.room_code || '—'}
+                          </td>
+                          <td className="py-2 px-3 text-xs text-slate-300 font-mono">
+                            {log.round_number || '—'}
+                          </td>
+                          <td className="py-2 px-3 text-[11px] text-slate-300 font-mono max-w-[250px] truncate" title={formattedInputs}>
+                            {formattedInputs}
+                          </td>
+                          <td className="py-2 px-3 text-[10px] text-violet-300 font-mono max-w-[250px] truncate" title={formattedResponse}>
+                            {formattedResponse}
+                          </td>
+                          <td className="py-2 px-3 text-[10px] text-slate-400 font-mono">
+                            {log.latency_ms > 0 ? `${log.latency_ms}ms` : '—'}
+                          </td>
+                          <td className="py-2 px-3">
+                            <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
+                              log.status_code === 200
+                                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            }`}>
+                              {log.status_code || '—'}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3">
+                            {log.cached ? (
+                              <span className="text-[9px] font-bold bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 uppercase">Cache</span>
+                            ) : (
+                              <span className="text-[9px] font-bold bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/20 uppercase">API</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 text-[10px] text-red-400 max-w-[150px] truncate" title={log.error}>
+                            {log.error || '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

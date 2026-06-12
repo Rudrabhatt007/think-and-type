@@ -55,92 +55,63 @@ def test_scoring_wrong_letter_and_invalid():
 
 from unittest.mock import patch, MagicMock
 
-def test_scoring_mapbox_place_validation():
-    from app.game.scoring import _mapbox_places_cache
+def test_scoring_gemini_unified_validation():
+    from app.game.scoring import _gemini_places_cache, _gemini_animals_cache, _gemini_things_cache
 
-    # Test case 1: Mapbox key not configured (should bypass and allow)
-    _mapbox_places_cache.clear()
+    # Test case 1: Gemini key not configured (should bypass and allow all)
+    _gemini_places_cache.clear()
+    _gemini_animals_cache.clear()
+    _gemini_things_cache.clear()
     with patch("app.game.scoring.settings") as mock_settings:
-        mock_settings.MAPBOX_ACCESS_TOKEN = ""
+        mock_settings.GEMINI_API_KEY = ""
         letter = "P"
         submissions = [
-            {"user_id": "u1", "category": "place", "answer_text": "Paris", "is_valid": True, "points": 0}
+            {"user_id": "u1", "category": "place", "answer_text": "Paris", "is_valid": True, "points": 0},
+            {"user_id": "u2", "category": "animal", "answer_text": "Panda", "is_valid": True, "points": 0},
+            {"user_id": "u3", "category": "thing", "answer_text": "Pencil", "is_valid": True, "points": 0}
         ]
         scored = calculate_round_scores(letter, submissions)
         assert scored[0]["points"] == 10
+        assert scored[1]["points"] == 10
+        assert scored[2]["points"] == 10
 
-    # Test case 2: Correct spelling — API returns "Paris", player typed "Paris" → valid
-    _mapbox_places_cache.clear()
+    # Test case 2: Gemini API returns valid/invalid mock response for place, animal, and thing
+    _gemini_places_cache.clear()
+    _gemini_animals_cache.clear()
+    _gemini_things_cache.clear()
     with patch("app.game.scoring.settings") as mock_settings, \
-         patch("httpx.get") as mock_get:
-        mock_settings.MAPBOX_ACCESS_TOKEN = "test_key"
+         patch("httpx.post") as mock_post:
+        mock_settings.GEMINI_API_KEY = "test_key"
+        mock_settings.GEMINI_MODEL = "gemini-2.5-flash-lite"
         
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.json.return_value = {"features": [{"id": "place.123", "text": "Paris", "place_name": "Paris, France"}]}
-        mock_get.return_value = mock_resp
+        mock_resp.json.return_value = {
+            "candidates": [{
+                "content": {
+                    "parts": [{"text": '{"place": {"paris": true, "plutoland": false}, "animal": {"panda": true, "pekingese": false}, "thing": {"pencil": true, "pride": false}}'}]
+                }
+            }]
+        }
+        mock_post.return_value = mock_resp
         
         letter = "P"
         submissions = [
-            {"user_id": "u1", "category": "place", "answer_text": "Paris", "is_valid": True, "points": 0}
+            {"user_id": "u1", "category": "place", "answer_text": "paris", "is_valid": True, "points": 0},
+            {"user_id": "u2", "category": "place", "answer_text": "plutoland", "is_valid": True, "points": 0},
+            {"user_id": "u3", "category": "animal", "answer_text": "panda", "is_valid": True, "points": 0},
+            {"user_id": "u4", "category": "animal", "answer_text": "pekingese", "is_valid": True, "points": 0},
+            {"user_id": "u5", "category": "thing", "answer_text": "pencil", "is_valid": True, "points": 0},
+            {"user_id": "u6", "category": "thing", "answer_text": "pride", "is_valid": True, "points": 0}
         ]
         scored = calculate_round_scores(letter, submissions)
-        assert scored[0]["points"] == 10
-        mock_get.assert_called_once()
-
-    # Test case 3: No features returned (made-up place) → invalid
-    _mapbox_places_cache.clear()
-    with patch("app.game.scoring.settings") as mock_settings, \
-         patch("httpx.get") as mock_get:
-        mock_settings.MAPBOX_ACCESS_TOKEN = "test_key"
-        
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {"features": []}
-        mock_get.return_value = mock_resp
-        
-        letter = "P"
-        submissions = [
-            {"user_id": "u1", "category": "place", "answer_text": "PlutoLand", "is_valid": True, "points": 0}
-        ]
-        scored = calculate_round_scores(letter, submissions)
-        assert scored[0]["points"] == 0
-
-    # Test case 4: Misspelled place — player typed "Monago", API returns "Monaco" → REJECTED
-    _mapbox_places_cache.clear()
-    with patch("app.game.scoring.settings") as mock_settings, \
-         patch("httpx.get") as mock_get:
-        mock_settings.MAPBOX_ACCESS_TOKEN = "test_key"
-        
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {"features": [{"id": "place.456", "text": "Monaco", "place_name": "Monaco"}]}
-        mock_get.return_value = mock_resp
-        
-        letter = "M"
-        submissions = [
-            {"user_id": "u1", "category": "place", "answer_text": "Monago", "is_valid": True, "points": 0}
-        ]
-        scored = calculate_round_scores(letter, submissions)
-        assert scored[0]["points"] == 0  # Spelling mismatch: "monago" ≠ "monaco"
-
-    # Test case 5: Correct spelling, different case — player typed "monaco" → API returns "Monaco" → VALID
-    _mapbox_places_cache.clear()
-    with patch("app.game.scoring.settings") as mock_settings, \
-         patch("httpx.get") as mock_get:
-        mock_settings.MAPBOX_ACCESS_TOKEN = "test_key"
-        
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {"features": [{"id": "place.456", "text": "Monaco", "place_name": "Monaco"}]}
-        mock_get.return_value = mock_resp
-        
-        letter = "M"
-        submissions = [
-            {"user_id": "u1", "category": "place", "answer_text": "monaco", "is_valid": True, "points": 0}
-        ]
-        scored = calculate_round_scores(letter, submissions)
-        assert scored[0]["points"] == 10  # Case-insensitive: "monaco" == "monaco" ✓
+        assert scored[0]["points"] == 10  # paris is valid place
+        assert scored[1]["points"] == 0   # plutoland is invalid place
+        assert scored[2]["points"] == 10  # panda is valid animal
+        assert scored[3]["points"] == 0   # pekingese is invalid animal (or false in mock)
+        assert scored[4]["points"] == 10  # pencil is valid thing
+        assert scored[5]["points"] == 0   # pride is invalid thing (abstract)
+        mock_post.assert_called_once()
 
 def test_scoring_min_two_characters():
     # 'name' and 'thing' categories require at least 2 characters
@@ -172,45 +143,3 @@ def test_scoring_banned_category_names():
     ]
     scored = calculate_round_scores(letter, submissions)
     assert scored[0]["points"] == 0
-
-def test_scoring_gemini_thing_validation():
-    from app.game.scoring import _gemini_things_cache
-
-    # Test case 1: Gemini key not configured (should bypass and allow)
-    _gemini_things_cache.clear()
-    with patch("app.game.scoring.settings") as mock_settings:
-        mock_settings.GEMINI_API_KEY = ""
-        letter = "T"
-        submissions = [
-            {"user_id": "u1", "category": "thing", "answer_text": "Table", "is_valid": True, "points": 0}
-        ]
-        scored = calculate_round_scores(letter, submissions)
-        assert scored[0]["points"] == 10
-
-    # Test case 2: Gemini API returns valid/invalid mock response
-    _gemini_things_cache.clear()
-    with patch("app.game.scoring.settings") as mock_settings, \
-         patch("httpx.post") as mock_post:
-        mock_settings.GEMINI_API_KEY = "test_key"
-        mock_settings.GEMINI_MODEL = "gemini-2.5-flash-lite"
-        
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.json.return_value = {
-            "candidates": [{
-                "content": {
-                    "parts": [{"text": '{"table": true, "trust": false}'}]
-                }
-            }]
-        }
-        mock_post.return_value = mock_resp
-        
-        letter = "T"
-        submissions = [
-            {"user_id": "u1", "category": "thing", "answer_text": "table", "is_valid": True, "points": 0},
-            {"user_id": "u2", "category": "thing", "answer_text": "trust", "is_valid": True, "points": 0}
-        ]
-        scored = calculate_round_scores(letter, submissions)
-        assert scored[0]["points"] == 10  # table is valid thing
-        assert scored[1]["points"] == 0   # trust is abstract (not a thing)
-        mock_post.assert_called_once()

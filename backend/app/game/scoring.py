@@ -15,7 +15,9 @@ _mapbox_places_cache: Dict[str, bool] = {}
 # Each entry: { timestamp, query, request_url, status_code, feature_count, place_name_returned, is_valid, latency_ms, error }
 mapbox_api_logs: List[Dict[str, Any]] = []
 
-# Cache for Gemini validation lookup results
+# Caches for Gemini validation lookup results per category
+_gemini_places_cache: Dict[str, bool] = {}
+_gemini_animals_cache: Dict[str, bool] = {}
 _gemini_things_cache: Dict[str, bool] = {}
 
 # Structured Gemini API log entries for admin audit trail
@@ -25,7 +27,7 @@ gemini_api_logs: List[Dict[str, Any]] = []
 _MAX_LOG_ENTRIES = 500
 
 
-def _append_gemini_log(*, room_code: str, round_number: int, inputs: List[str],
+def _append_gemini_log(*, room_code: str, round_number: int, inputs: Dict[str, List[str]],
                        response: Dict[str, Any], latency_ms: float, status_code: int,
                        error: str, cached: bool):
     """Append a structured Gemini log entry, trimming old entries if over cap."""
@@ -201,36 +203,59 @@ def normalize_text(text: str) -> str:
         return ""
     return " ".join(text.strip().lower().split())
 
-def validate_things_with_gemini(words: List[str], room_code: str = "", round_number: int = 0) -> Dict[str, bool]:
+def validate_categories_with_gemini(words_by_category: Dict[str, List[str]], room_code: str = "", round_number: int = 0) -> Dict[str, Dict[str, bool]]:
     """
-    Validate a list of words for the 'thing' category in bulk using Gemini API.
-    Returns a dictionary mapping each word to a boolean (True if valid, False otherwise).
+    Validate lists of words for place, animal, and thing categories in a single bulk Gemini API call.
+    Returns a dict mapping category -> word -> is_valid.
     If GEMINI_API_KEY is not configured, logs a warning and returns True for all words.
     """
     token = getattr(settings, "GEMINI_API_KEY", "")
     model = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash-lite")
     
+    # Initialize results
+    results: Dict[str, Dict[str, bool]] = {
+        "place": {},
+        "animal": {},
+        "thing": {}
+    }
+    
     if not token:
         logger.warning("GEMINI_API_KEY is not configured. Skipping Gemini validation.")
-        return {word: True for word in words}
-        
-    normalized_words = list(set([normalize_text(w) for w in words if normalize_text(w)]))
-    if not normalized_words:
-        return {}
-        
-    results: Dict[str, bool] = {}
-    words_to_query = []
-    for w in normalized_words:
-        if w in _gemini_things_cache:
-            results[w] = _gemini_things_cache[w]
-        else:
-            words_to_query.append(w)
-            
-    if not words_to_query:
+        for cat, words in words_by_category.items():
+            for word in words:
+                results[cat][normalize_text(word)] = True
+        return results
+
+    # Group words and check caches
+    uncached: Dict[str, List[str]] = {
+        "place": [],
+        "animal": [],
+        "thing": []
+    }
+    
+    cache_map = {
+        "place": _gemini_places_cache,
+        "animal": _gemini_animals_cache,
+        "thing": _gemini_things_cache
+    }
+    
+    for cat, words in words_by_category.items():
+        if cat not in uncached:
+            continue
+        norm_words = list(set([normalize_text(w) for w in words if normalize_text(w)]))
+        for w in norm_words:
+            if w in cache_map[cat]:
+                results[cat][w] = cache_map[cat][w]
+            else:
+                uncached[cat].append(w)
+                
+    # Check if there is anything to query
+    has_uncached = any(len(lst) > 0 for lst in uncached.values())
+    if not has_uncached:
         _append_gemini_log(
             room_code=room_code,
             round_number=round_number,
-            inputs=normalized_words,
+            inputs={cat: list(res.keys()) for cat, res in results.items()},
             response=results,
             latency_ms=0.0,
             status_code=200,
@@ -247,10 +272,17 @@ def validate_things_with_gemini(words: List[str], room_code: str = "", round_num
     
     prompt = (
         "You are an expert referee for the word game 'Think & Type'.\n"
-        "Validate if each of the following words is a valid 'thing' (a physical object, item, utensil, tool, clothing, device, or physical substance).\n"
-        "Do not allow abstract concepts, actions, or adjectives.\n"
-        "Respond ONLY with a JSON object where the keys are the exact input words and the values are booleans (true if it is a valid 'thing', false otherwise).\n\n"
-        f"Input words:\n{json.dumps(words_to_query)}"
+        "Validate if each of the following words is valid for its respective category:\n"
+        "- 'place': a country, city, state, town, continent, or major geographical feature.\n"
+        "- 'animal': any mammal, bird, reptile, amphibian, fish, insect, or other living creature.\n"
+        "- 'thing': a physical object, item, utensil, tool, clothing, device, or physical substance. Do not allow abstract concepts, actions, or adjectives.\n\n"
+        "Respond ONLY with a JSON object of this exact structure (do not include markdown wrapping or other text):\n"
+        "{\n"
+        "  \"place\": {\"word1\": true, \"word2\": false},\n"
+        "  \"animal\": {\"word3\": true},\n"
+        "  \"thing\": {\"word4\": true}\n"
+        "}\n\n"
+        f"Input words to validate:\n{json.dumps(uncached)}"
     )
     
     payload = {
@@ -280,32 +312,40 @@ def validate_things_with_gemini(words: List[str], room_code: str = "", round_num
                 text_content = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "{}")
                 gemini_response_dict = json.loads(text_content.strip())
                 
-                for w in words_to_query:
-                    is_valid = False
-                    for key, val in gemini_response_dict.items():
-                        if key.lower().strip() == w.lower().strip():
-                            is_valid = bool(val)
-                            break
-                    _gemini_things_cache[w] = is_valid
-                    results[w] = is_valid
+                # Update caches and results from the parsed response
+                for cat in ["place", "animal", "thing"]:
+                    cat_res = gemini_response_dict.get(cat, {})
+                    # Standardize keys to lowercase
+                    cat_res_lower = {k.lower().strip(): v for k, v in cat_res.items()}
+                    
+                    for w in uncached[cat]:
+                        is_valid = False
+                        if w in cat_res_lower:
+                            is_valid = bool(cat_res_lower[w])
+                        cache_map[cat][w] = is_valid
+                        results[cat][w] = is_valid
             else:
                 error_msg = "No candidates in Gemini response"
-                for w in words_to_query:
-                    results[w] = True
+                # Fallback to valid to prevent blocking gameplay
+                for cat in ["place", "animal", "thing"]:
+                    for w in uncached[cat]:
+                        results[cat][w] = True
         else:
             error_msg = f"HTTP {response.status_code}: {response.text}"
-            for w in words_to_query:
-                results[w] = True
+            for cat in ["place", "animal", "thing"]:
+                for w in uncached[cat]:
+                    results[cat][w] = True
     except Exception as e:
         latency = round((time.monotonic() - start_time) * 1000, 1)
         error_msg = str(e)
-        for w in words_to_query:
-            results[w] = True
-            
+        for cat in ["place", "animal", "thing"]:
+            for w in uncached[cat]:
+                results[cat][w] = True
+                
     _append_gemini_log(
         room_code=room_code,
         round_number=round_number,
-        inputs=words_to_query,
+        inputs=uncached,
         response=gemini_response_dict or results,
         latency_ms=latency,
         status_code=status_code,
@@ -321,7 +361,33 @@ def calculate_round_scores(letter: str, submissions: List[Dict[str, Any]], room_
     """
     letter_upper = letter.upper()
     
-    # 1. Group submissions by category
+    # 1. Gather all candidates for Place, Animal, and Thing to validate with Gemini in one API call
+    words_by_category = {
+        "place": [],
+        "animal": [],
+        "thing": []
+    }
+    
+    for sub in submissions:
+        cat = sub.get("category")
+        if cat in words_by_category:
+            text = sub.get("answer_text", "")
+            is_valid = sub.get("is_valid", True)
+            if not text or not is_valid:
+                continue
+            normalized = normalize_text(text)
+            if not normalized or normalized[0].upper() != letter_upper:
+                continue
+            if normalized == cat:
+                continue
+            if cat in ["name", "thing"] and len(normalized) < 2:
+                continue
+            words_by_category[cat].append(normalized)
+            
+    # Perform the single unified Gemini API call
+    gemini_validations = validate_categories_with_gemini(words_by_category, room_code, round_number)
+
+    # 2. Group submissions by category
     categories = ["name", "place", "animal", "thing"]
     grouped: Dict[str, List[Dict[str, Any]]] = {cat: [] for cat in categories}
     
@@ -330,29 +396,11 @@ def calculate_round_scores(letter: str, submissions: List[Dict[str, Any]], room_
         if cat in grouped:
             grouped[cat].append(sub)
             
-    # 2. Process each category individually
+    # 3. Process each category individually
     for cat, cat_subs in grouped.items():
         # First, reset all points to 0 and pre-filter valid submissions
         valid_subs: List[Dict[str, Any]] = []
         
-        # Pre-fetch Gemini validations in bulk for 'thing' category
-        gemini_validations: Dict[str, bool] = {}
-        if cat == "thing":
-            thing_answers = []
-            for sub in cat_subs:
-                text = sub.get("answer_text", "")
-                is_valid = sub.get("is_valid", True)
-                if not text or not is_valid:
-                    continue
-                normalized = normalize_text(text)
-                if not normalized or normalized[0].upper() != letter_upper:
-                    continue
-                if len(normalized) < 2 or normalized == "thing":
-                    continue
-                thing_answers.append(normalized)
-            if thing_answers:
-                gemini_validations = validate_things_with_gemini(thing_answers, room_code, round_number)
-
         for sub in cat_subs:
             sub["points"] = 0
             
@@ -376,25 +424,10 @@ def calculate_round_scores(letter: str, submissions: List[Dict[str, Any]], room_
             if normalized == cat:
                 continue
                 
-            # Dictionary validation for 'animal' category
-            if cat == "animal":
-                valid_animals = get_valid_animals()
-                # Clean hyphens for lookup match matching
-                lookup_val = normalized.replace("-", " ")
-                if lookup_val not in valid_animals:
-                    # Not a valid animal in dictionary
-                    continue
-                
-            # Mapbox Geocoding validation for 'place' category
-            if cat == "place":
-                if not validate_place_with_mapbox(normalized):
-                    # Not a valid place according to Mapbox
-                    continue
-                    
-            # Gemini validation for 'thing' category
-            if cat == "thing":
-                if not gemini_validations.get(normalized, False):
-                    # Not a valid thing according to Gemini
+            # Validation for 'animal', 'place', and 'thing' categories via the unified Gemini validations
+            if cat in ["place", "animal", "thing"]:
+                # Lookup validation result from the single batch API response
+                if not gemini_validations[cat].get(normalized, False):
                     continue
                 
             valid_subs.append(sub)
