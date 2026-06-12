@@ -31,6 +31,10 @@ app.add_middleware(
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(games_router, prefix=settings.API_V1_STR)
 
+@app.get("/")
+async def root():
+    return {"status": "active", "message": "Think & Type API is running"}
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "project": settings.PROJECT_NAME}
