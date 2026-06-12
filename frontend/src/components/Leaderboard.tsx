@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Medal, ArrowRight, Home } from 'lucide-react';
+import { Trophy, ArrowRight } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 
 interface LeaderboardPlayer {
@@ -23,7 +23,6 @@ interface LeaderboardProps {
 export const Leaderboard: React.FC<LeaderboardProps> = ({
   players,
   winner,
-  runnerUp,
   isGameOver,
   roundNumber,
   onLobbyReturn,
@@ -36,23 +35,23 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
       <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-sm overflow-hidden">
         {/* Simple CSS Fireworks/Confetti using multiple animated divs */}
         <div className="absolute inset-0 pointer-events-none opacity-50">
-           {Array.from({ length: 30 }).map((_, i) => (
-             <motion.div
-               key={i}
-               initial={{ top: '100%', left: `${Math.random() * 100}%`, scale: 0 }}
-               animate={{ 
-                 top: `${Math.random() * 50}%`, 
-                 scale: [0, 1, 0],
-                 opacity: [1, 1, 0]
-               }}
-               transition={{ 
-                 duration: Math.random() * 2 + 1, 
-                 repeat: Infinity, 
-                 delay: Math.random() * 2 
-               }}
-               className={`absolute w-3 h-3 rounded-full ${['bg-amber-400', 'bg-pink-500', 'bg-indigo-500', 'bg-cyan-400'][i % 4]} shadow-[0_0_15px_currentColor]`}
-             />
-           ))}
+          {Array.from({ length: 30 }).map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ top: '100%', left: `${Math.random() * 100}%`, scale: 0 }}
+              animate={{
+                top: `${Math.random() * 50}%`,
+                scale: [0, 1, 0],
+                opacity: [1, 1, 0]
+              }}
+              transition={{
+                duration: Math.random() * 2 + 1,
+                repeat: Infinity,
+                delay: Math.random() * 2
+              }}
+              className={`absolute w-3 h-3 rounded-full ${['bg-amber-400', 'bg-pink-500', 'bg-indigo-500', 'bg-cyan-400'][i % 4]} shadow-[0_0_15px_currentColor]`}
+            />
+          ))}
         </div>
 
         <div className="relative z-10 w-full max-w-4xl mx-auto px-4 flex flex-col items-center gap-8">
@@ -73,28 +72,28 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
           </motion.div>
 
           <GlassCard className="w-full max-w-2xl bg-slate-900/80 border-slate-700/50 p-6 mt-8">
-             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest text-center mb-4">Final Standings</h3>
-             <div className="space-y-2">
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest text-center mb-4">Final Standings</h3>
+            <div className="space-y-2">
               {sortedPlayers.map((player, idx) => (
                 <div key={player.user_id} className="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                   <div className="flex items-center gap-4">
-                     <span className={`w-8 h-8 rounded-full flex items-center justify-center font-black ${idx === 0 ? 'bg-amber-500 text-slate-900' : idx === 1 ? 'bg-slate-300 text-slate-900' : 'bg-slate-800 text-slate-400'}`}>
-                       #{idx + 1}
-                     </span>
-                     <span className="text-xl">{player.avatar || '👤'}</span>
-                     <span className="text-sm font-bold text-slate-200">{player.username}</span>
-                   </div>
-                   <span className="text-lg font-black text-slate-300">{player.score} pts</span>
+                  <div className="flex items-center gap-4">
+                    <span className={`w-8 h-8 rounded-full flex items-center justify-center font-black ${idx === 0 ? 'bg-amber-500 text-slate-900' : idx === 1 ? 'bg-slate-300 text-slate-900' : 'bg-slate-800 text-slate-400'}`}>
+                      #{idx + 1}
+                    </span>
+                    <span className="text-xl">{player.avatar || '👤'}</span>
+                    <span className="text-sm font-bold text-slate-200">{player.username}</span>
+                  </div>
+                  <span className="text-lg font-black text-slate-300">{player.score} pts</span>
                 </div>
               ))}
-             </div>
-             
-             <button
-                onClick={onLobbyReturn}
-                className="w-full mt-6 py-4 rounded-xl font-black bg-indigo-600 hover:bg-indigo-500 text-white uppercase tracking-widest shadow-lg transition-all"
-             >
-                Return to Main Menu
-             </button>
+            </div>
+
+            <button
+              onClick={onLobbyReturn}
+              className="w-full mt-6 py-4 rounded-xl font-black bg-indigo-600 hover:bg-indigo-500 text-white uppercase tracking-widest shadow-lg transition-all"
+            >
+              Return to Main Menu
+            </button>
           </GlassCard>
         </div>
       </div>

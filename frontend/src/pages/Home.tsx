@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Settings, ShieldAlert } from 'lucide-react';
+import { ChevronRight, ShieldAlert } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { authApi, gamesApi } from '../api';
 
@@ -19,11 +19,7 @@ export const Home: React.FC<HomeProps> = ({ onJoinRoom, onOpenAdmin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // Game Creation settings
-  const [showSettings, setShowSettings] = useState(false);
-  const [totalRounds, setTotalRounds] = useState(15);
-  const [excludeU, setExcludeU] = useState(false);
-  const [roundDuration, setRoundDuration] = useState(15);
+
 
   // Admin access control states
   const [activeTab, setActiveTab] = useState<'player' | 'admin'>('player');

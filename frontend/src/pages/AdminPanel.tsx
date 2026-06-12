@@ -203,7 +203,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             Total Lobbies: <span className="text-slate-200">{rooms.length}</span>
           </span>
           <button
-            onClick={fetchRooms}
+            onClick={() => fetchRooms()}
             disabled={loading}
             className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 active:scale-95 transition-all text-slate-300 disabled:opacity-50"
             title="Refresh Admin Dashboard"
