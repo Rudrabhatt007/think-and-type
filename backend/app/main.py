@@ -40,6 +40,5 @@ async def root():
 async def health_check():
     return {"status": "healthy", "project": settings.PROJECT_NAME}
 
-# Create Socket.IO ASGI app and mount it on FastAPI
-socket_app = socketio.ASGIApp(socket_manager.sio)
-app.mount("/", socket_app)
+# Wrap FastAPI app with Socket.IO ASGI app
+asgi_app = socket_manager.get_asgi_app(app)
