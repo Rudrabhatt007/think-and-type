@@ -23,7 +23,7 @@ function App() {
     <div className="min-h-screen w-full flex flex-col justify-between py-6 relative overflow-x-hidden">
       <AuroraBackground />
 
-      <main className="flex-1 w-full max-w-6xl mx-auto flex flex-col justify-center px-2 sm:px-4 relative z-10 min-w-0">
+      <main className="flex-1 w-full max-w-6xl mx-auto flex flex-col justify-start pt-20 md:pt-24 pb-8 px-2 sm:px-4 relative z-10 min-w-0">
         {view === 'admin' ? (
           <AdminPanel onBack={() => setView('game')} />
         ) : roomCode ? (

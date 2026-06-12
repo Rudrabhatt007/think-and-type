@@ -34,7 +34,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   // Massive Celebration View for Game Over
   if (isGameOver) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/90 backdrop-blur-sm overflow-hidden">
+      <div className="fixed inset-0 z-50 flex flex-col items-center bg-slate-950/90 backdrop-blur-sm overflow-y-auto py-8 md:py-16 px-4">
         {/* Simple CSS Fireworks/Confetti using multiple animated divs */}
         <div className="absolute inset-0 pointer-events-none opacity-50">
           {Array.from({ length: 30 }).map((_, i) => (
@@ -56,7 +56,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
           ))}
         </div>
 
-        <div className="relative z-10 w-full max-w-4xl mx-auto px-4 flex flex-col items-center gap-8">
+        <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col items-center gap-6 md:gap-8 my-auto">
           <motion.div
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: 1, rotate: 0 }}
