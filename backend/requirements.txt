@@ -10,3 +10,5 @@ python-multipart
 pytest
 pytest-asyncio
 httpx
+fakeredis
+
