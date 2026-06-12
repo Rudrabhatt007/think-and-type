@@ -10,14 +10,14 @@ export const AuroraBackground: React.FC = () => {
     if (!scene) return;
 
     // Create float letters
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 40; i++) {
       const e = document.createElement('div');
       e.className = 'float-letter';
       e.textContent = L[Math.floor(Math.random() * 26)];
       e.style.left = Math.random() * 100 + '%';
       e.style.fontSize = (30 + Math.random() * 64) + 'px';
-      e.style.animationDuration = (16 + Math.random() * 18) + 's';
-      e.style.animationDelay = (-Math.random() * 30) + 's';
+      e.style.animationDuration = (5 + Math.random() * 7) + 's';
+      e.style.animationDelay = (-Math.random() * 12) + 's';
       scene.appendChild(e);
     }
 

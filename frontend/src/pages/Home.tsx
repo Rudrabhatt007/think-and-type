@@ -112,7 +112,7 @@ export const Home: React.FC<HomeProps> = ({ onJoinRoom, onOpenAdmin }) => {
               ✨ Multiplayer Word Battle
             </div>
             
-            <h1 className="font-['Poppins'] font-black text-[clamp(40px,12vw,120px)] leading-[1] md:leading-[0.95] tracking-tighter mb-4 md:mb-6 select-none">
+            <h1 className="font-['KnightWarrior'] font-normal text-[clamp(45px,14vw,140px)] leading-[1] md:leading-[0.95] tracking-wide mb-4 md:mb-6 select-none drop-shadow-[0_0_35px_rgba(255,255,255,0.2)]">
               <span className="bg-gradient-to-br from-purple-300 to-purple-500 bg-clip-text text-transparent inline-block">Think</span> 
               <span className="text-amber-400 inline-block text-[0.7em] align-[0.06em] mx-2 md:mx-4 drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]">&amp;</span> 
               <br className="sm:hidden" />

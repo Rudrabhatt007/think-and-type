@@ -1,5 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Poppins:wght@300;400;500;600;700;800&display=swap');
 
+@font-face {
+  font-family: 'KnightWarrior';
+  src: url('/KnightWarrior-w16n8.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -50,8 +57,13 @@
 }
 
 .float-letter {
-  position:absolute; font-family:'Cinzel',serif; font-weight:800; color:rgba(255,255,255,.06);
-  animation:drift linear infinite; user-select:none;
+  position:absolute; 
+  font-family:'KnightWarrior', sans-serif; 
+  font-weight:normal; 
+  color:rgba(255,255,255,.24);
+  text-shadow: 0 0 12px rgba(255,255,255,0.4);
+  animation:drift linear infinite; 
+  user-select:none;
 }
 @keyframes drift {
   0% { transform:translateY(110vh) rotate(0); }
