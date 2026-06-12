@@ -160,25 +160,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     }
   };
 
-  const formatInputs = (inputs: Record<string, string[]>) => {
-    if (!inputs || typeof inputs !== 'object') return '—';
-    return Object.entries(inputs)
-      .filter(([_, words]) => words && words.length > 0)
-      .map(([cat, words]) => `${cat}: [${words.join(', ')}]`)
-      .join(' | ');
+  const formatInputs = (inputs: any) => {
+    try {
+      if (!inputs || typeof inputs !== 'object') return '—';
+      return Object.entries(inputs)
+        .filter(([_, words]) => Array.isArray(words) && words.length > 0)
+        .map(([cat, words]) => `${cat}: [${(words as string[]).join(', ')}]`)
+        .join(' | ');
+    } catch (e) {
+      console.error("Error formatting inputs:", e);
+      return '—';
+    }
   };
 
-  const formatResponse = (response: Record<string, Record<string, boolean>>) => {
-    if (!response || typeof response !== 'object') return '—';
-    return Object.entries(response)
-      .filter(([_, val]) => val && typeof val === 'object')
-      .map(([cat, wordMap]) => {
-        const wordResults = Object.entries(wordMap)
-          .map(([word, isValid]) => `${word}: ${isValid ? '✓' : '✗'}`)
-          .join(', ');
-        return `${cat}: {${wordResults}}`;
-      })
-      .join(' | ');
+  const formatResponse = (response: any) => {
+    try {
+      if (!response || typeof response !== 'object') return '—';
+      return Object.entries(response)
+        .filter(([_, val]) => val && typeof val === 'object' && !Array.isArray(val))
+        .map(([cat, wordMap]) => {
+          const wordResults = Object.entries(wordMap as Record<string, boolean>)
+            .map(([word, isValid]) => `${word}: ${isValid ? '✓' : '✗'}`)
+            .join(', ');
+          return `${cat}: {${wordResults}}`;
+        })
+        .join(' | ');
+    } catch (e) {
+      console.error("Error formatting response:", e);
+      return '—';
+    }
   };
 
   // Fetch rooms on page change
@@ -997,12 +1007,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                   </thead>
                   <tbody>
                     {geminiLogs.map((log, idx) => {
-                      const formattedInputs = Array.isArray(log.inputs) 
-                        ? log.inputs.join(', ') 
-                        : formatInputs(log.inputs);
-                      const formattedResponse = (log.response && typeof log.response === 'object' && !Array.isArray(log.response) && Object.values(log.response).some(v => v && typeof v === 'object'))
-                        ? formatResponse(log.response as Record<string, Record<string, boolean>>)
-                        : JSON.stringify(log.response);
+                      let formattedInputs = '—';
+                      let formattedResponse = '—';
+                      try {
+                        formattedInputs = Array.isArray(log.inputs) 
+                          ? log.inputs.join(', ') 
+                          : formatInputs(log.inputs);
+                      } catch (err) {
+                        formattedInputs = '—';
+                      }
+
+                      try {
+                        formattedResponse = (log.response && typeof log.response === 'object' && !Array.isArray(log.response) && Object.values(log.response).some(v => v && typeof v === 'object'))
+                          ? formatResponse(log.response as Record<string, Record<string, boolean>>)
+                          : JSON.stringify(log.response);
+                      } catch (err) {
+                        formattedResponse = '—';
+                      }
 
                       return (
                         <tr key={idx} className="border-b border-slate-900/40 hover:bg-white/[0.01] transition-all">
