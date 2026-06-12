@@ -19,10 +19,16 @@ app = FastAPI(
 )
 
 # Set CORS origins
+origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://think-and-type.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust for production
-    allow_credentials=False, # We use JWT Bearer headers, not Cookies, so credentials are not required
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
