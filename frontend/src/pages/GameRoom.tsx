@@ -21,6 +21,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({
   const [players, setPlayers] = useState<any[]>([]);
   const [hostId, setHostId] = useState<string | null>(null);
   const [currentRound, setCurrentRound] = useState(0);
+  const [totalRounds, setTotalRounds] = useState(0);
   const [roundLetter, setRoundLetter] = useState('');
   const [roundDuration, setRoundDuration] = useState(15);
   
@@ -63,6 +64,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({
       if (data.game) {
         setHostId(data.game.host_id);
         setCurrentRound(data.game.current_round);
+        setTotalRounds(data.game.total_rounds || 0);
         setRoundDuration(data.game.round_duration || 15);
         
         if (data.game.status === 'active' && phase === 'lobby') {
@@ -227,6 +229,7 @@ export const GameRoom: React.FC<GameRoomProps> = ({
             players={players}
             isGameOver={false}
             roundNumber={currentRound}
+            totalRounds={totalRounds}
             onLobbyReturn={onLeaveRoom}
           />
         );

@@ -17,6 +17,7 @@ interface LeaderboardProps {
   runnerUp?: LeaderboardPlayer | null;
   isGameOver: boolean;
   roundNumber?: number;
+  totalRounds?: number;
   onLobbyReturn: () => void;
 }
 
@@ -25,6 +26,7 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
   winner,
   isGameOver,
   roundNumber,
+  totalRounds,
   onLobbyReturn,
 }) => {
   const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
@@ -145,10 +147,16 @@ export const Leaderboard: React.FC<LeaderboardProps> = ({
         </div>
       </GlassCard>
 
-      <div className="flex items-center justify-center gap-1.5 text-slate-500 text-xs font-bold py-1 uppercase tracking-wider">
-        <span>Loading next letter</span>
-        <ArrowRight className="w-3.5 h-3.5 animate-bounce-right" />
-      </div>
+      {roundNumber && totalRounds && roundNumber >= totalRounds ? (
+        <div className="flex items-center justify-center gap-1.5 text-amber-500 text-xs font-black py-3 uppercase tracking-wider animate-pulse">
+          <span>Game Finished! Waiting for Admin to declare the Champion...</span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center gap-1.5 text-slate-500 text-xs font-bold py-1 uppercase tracking-wider">
+          <span>Loading next letter</span>
+          <ArrowRight className="w-3.5 h-3.5 animate-bounce-right" />
+        </div>
+      )}
     </div>
   );
 };

@@ -275,13 +275,13 @@ async def end_challenge_phase(game_id: str, round_number: int):
         "scores": players_scores
     })
     await sio.notify_admin_dashboard()
-    
-    # 8. Check game termination condition
+    # Check game termination condition
     game_query = db_client.table("games").select("total_rounds").eq("id", game_id).execute()
     total_rounds = game_query.data[0]["total_rounds"]
     
     if round_number >= total_rounds:
-        await end_game(game_id, players_scores)
+        # Final round scores broadcasted, wait for admin to declare winner
+        logger.info(f"Final round {round_number} complete for game {game_id}. Awaiting admin winner declaration.")
     else:
         # Wait 5 seconds before starting next round to let players see the scores
         async def wait_and_start():

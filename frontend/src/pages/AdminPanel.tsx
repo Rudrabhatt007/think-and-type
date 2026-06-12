@@ -439,6 +439,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                         </button>
                       </div>
                     )}
+                    {room.status === 'active' && room.current_round >= room.total_rounds && (
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-amber-950/20 border border-amber-500/20 animate-pulse">
+                        <span className="text-[10px] uppercase font-bold text-amber-300 tracking-wider">
+                          All rounds complete. Ready to show champion!
+                        </span>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              await apiClient.post(`/games/admin/declare-winner/${room.room_code}`);
+                              fetchRooms();
+                            } catch (err: any) {
+                              alert(err.response?.data?.detail || "Failed to declare winner.");
+                            }
+                          }}
+                          className="px-3.5 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 border border-amber-400/20 text-white font-bold text-[10px] uppercase tracking-wider transition-all active:scale-[0.98] shadow-md animate-none"
+                        >
+                          Declare Winner & Show Champion
+                        </button>
+                      </div>
+                    )}
                     <div className="grid md:grid-cols-2 gap-5">
                       
                       {/* Players & Scores Section */}

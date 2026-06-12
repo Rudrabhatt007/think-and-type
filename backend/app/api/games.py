@@ -302,3 +302,43 @@ async def admin_update_points(request: AdminUpdatePointsRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update points: {str(e)}"
         )
+
+@router.post("/admin/declare-winner/{room_code}")
+async def declare_winner_admin(room_code: str):
+    """Admin endpoint to declare winner and trigger game completed animation for all players"""
+    db_client = get_db()
+    room_code_upper = room_code.upper()
+    game_query = db_client.table("games").select("id, status").eq("room_code", room_code_upper).execute()
+    if not game_query.data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Game room not found."
+        )
+    game_data = game_query.data[0]
+    game_id = game_data["id"]
+    game_status = game_data["status"]
+    
+    if game_status == "completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Game has already been completed."
+        )
+        
+    # Fetch all players and calculate final leaderboard
+    players_query = db_client.table("game_players").select("score, profiles(username, id)").eq("game_id", game_id).execute()
+    
+    final_leaderboard = []
+    for item in players_query.data:
+        final_leaderboard.append({
+            "user_id": item["profiles"]["id"],
+            "username": item["profiles"]["username"],
+            "score": item["score"]
+        })
+        
+    # Sort by score descending
+    final_leaderboard.sort(key=lambda x: x["score"], reverse=True)
+    
+    from app.game.engine import end_game
+    await end_game(game_id, final_leaderboard)
+    
+    return {"status": "success", "message": "Winner declared successfully."}
