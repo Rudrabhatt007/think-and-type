@@ -228,9 +228,13 @@ async def end_challenge_phase(game_id: str, round_number: int):
     letter = await get_round_letter(game_id, round_number)
     
     # 4. Fetch all submissions to apply the scoring engine
-    submissions_query = db_client.table("submissions").select("*").eq("game_id", game_id).eq("round_number", round_number).execute()
-    
-    scored_submissions = calculate_round_scores(letter, submissions_query.data)
+    # Fetch room_code to pass to scoring engine for Gemini logging
+    room_code = ""
+    game_query = db_client.table("games").select("room_code").eq("id", game_id).execute()
+    if game_query.data:
+        room_code = game_query.data[0]["room_code"]
+
+    scored_submissions = calculate_round_scores(letter, submissions_query.data, room_code=room_code, round_number=round_number)
     
     # 5. Save calculated points back to DB and track total points per player
     player_round_totals: Dict[str, int] = {}

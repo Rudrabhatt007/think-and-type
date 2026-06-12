@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     # Mapbox API Token for Place validation
     MAPBOX_ACCESS_TOKEN: str = os.getenv("MAPBOX_ACCESS_TOKEN", "")
 
+    # Gemini API Credentials
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

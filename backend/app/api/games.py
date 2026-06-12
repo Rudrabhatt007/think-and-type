@@ -263,6 +263,14 @@ async def get_mapbox_api_logs():
     return list(reversed(mapbox_api_logs))
 
 
+@router.get("/admin/gemini-logs")
+async def get_gemini_api_logs():
+    """Admin endpoint to fetch Gemini LLM validation logs"""
+    from app.game.scoring import gemini_api_logs
+    # Return newest first
+    return list(reversed(gemini_api_logs))
+
+
 @router.patch("/admin/update-points")
 async def admin_update_points(request: AdminUpdatePointsRequest):
     """Admin endpoint to bulk-update submission points and recalculate player scores"""

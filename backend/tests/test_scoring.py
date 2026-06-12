@@ -172,3 +172,45 @@ def test_scoring_banned_category_names():
     ]
     scored = calculate_round_scores(letter, submissions)
     assert scored[0]["points"] == 0
+
+def test_scoring_gemini_thing_validation():
+    from app.game.scoring import _gemini_things_cache
+
+    # Test case 1: Gemini key not configured (should bypass and allow)
+    _gemini_things_cache.clear()
+    with patch("app.game.scoring.settings") as mock_settings:
+        mock_settings.GEMINI_API_KEY = ""
+        letter = "T"
+        submissions = [
+            {"user_id": "u1", "category": "thing", "answer_text": "Table", "is_valid": True, "points": 0}
+        ]
+        scored = calculate_round_scores(letter, submissions)
+        assert scored[0]["points"] == 10
+
+    # Test case 2: Gemini API returns valid/invalid mock response
+    _gemini_things_cache.clear()
+    with patch("app.game.scoring.settings") as mock_settings, \
+         patch("httpx.post") as mock_post:
+        mock_settings.GEMINI_API_KEY = "test_key"
+        mock_settings.GEMINI_MODEL = "gemini-2.5-flash-lite"
+        
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "candidates": [{
+                "content": {
+                    "parts": [{"text": '{"table": true, "trust": false}'}]
+                }
+            }]
+        }
+        mock_post.return_value = mock_resp
+        
+        letter = "T"
+        submissions = [
+            {"user_id": "u1", "category": "thing", "answer_text": "table", "is_valid": True, "points": 0},
+            {"user_id": "u2", "category": "thing", "answer_text": "trust", "is_valid": True, "points": 0}
+        ]
+        scored = calculate_round_scores(letter, submissions)
+        assert scored[0]["points"] == 10  # table is valid thing
+        assert scored[1]["points"] == 0   # trust is abstract (not a thing)
+        mock_post.assert_called_once()

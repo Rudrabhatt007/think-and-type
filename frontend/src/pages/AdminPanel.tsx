@@ -57,6 +57,18 @@ interface MapboxLogEntry {
   cached: boolean;
 }
 
+interface GeminiLogEntry {
+  timestamp: string;
+  room_code: string;
+  round_number: number;
+  inputs: string[];
+  response: Record<string, any>;
+  latency_ms: number;
+  status_code: number;
+  error: string;
+  cached: boolean;
+}
+
 interface AdminPanelProps {
   onBack: () => void;
 }
@@ -80,6 +92,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [mapboxLogs, setMapboxLogs] = useState<MapboxLogEntry[]>([]);
   const [mapboxLogsOpen, setMapboxLogsOpen] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
+
+  // Gemini API logs state
+  const [geminiLogs, setGeminiLogs] = useState<GeminiLogEntry[]>([]);
+  const [geminiLogsOpen, setGeminiLogsOpen] = useState(false);
+  const [loadingGeminiLogs, setLoadingGeminiLogs] = useState(false);
 
   // Round duration for new room creation
   const [newRoundDuration, setNewRoundDuration] = useState(15);
@@ -118,6 +135,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       // Silently ignore if the endpoint is not available
     } finally {
       setLoadingLogs(false);
+    }
+  };
+
+  const fetchGeminiLogs = async () => {
+    setLoadingGeminiLogs(true);
+    try {
+      const res = await apiClient.get('/games/admin/gemini-logs');
+      setGeminiLogs(res.data);
+    } catch {
+      // Silently ignore if the endpoint is not available
+    } finally {
+      setLoadingGeminiLogs(false);
     }
   };
 
@@ -862,6 +891,117 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             )}
             <div className="flex items-center justify-between text-[9px] text-slate-500 pt-1">
               <span>{mapboxLogs.length} log entries</span>
+              <span>Max retained: 500 entries (FIFO)</span>
+            </div>
+          </div>
+        )}
+      </GlassCard>
+
+      {/* ──── Gemini LLM API Logs ──── */}
+      <GlassCard className="p-5 border-slate-800/60 shadow-[0_8px_25px_rgba(0,0,0,0.2)] space-y-4 mt-6">
+        <div
+          className="flex items-center justify-between cursor-pointer"
+          onClick={() => {
+            if (!geminiLogsOpen) fetchGeminiLogs();
+            setGeminiLogsOpen(!geminiLogsOpen);
+          }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-violet-950/30 border border-violet-800/30 text-violet-400">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-slate-300">
+                Gemini LLM Validation Logs
+              </h2>
+              <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                Bulk AI request / response audit trail for "Thing" validation.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => { e.stopPropagation(); fetchGeminiLogs(); }}
+              disabled={loadingGeminiLogs}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 transition-all active:scale-95 disabled:opacity-50"
+              title="Refresh Logs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loadingGeminiLogs ? 'animate-spin' : ''}`} />
+            </button>
+            {geminiLogsOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+          </div>
+        </div>
+
+        {geminiLogsOpen && (
+          <div className="pt-3 border-t border-slate-900 space-y-3">
+            {geminiLogs.length === 0 ? (
+              <p className="text-xs text-slate-500 italic text-center py-6">
+                No Gemini API calls recorded yet. LLM validation logs will appear here during gameplay.
+              </p>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-white/5 bg-slate-950/20">
+                <table className="w-full text-left border-collapse min-w-[900px]">
+                  <thead>
+                    <tr className="bg-slate-950/60 border-b border-slate-900">
+                      <th className="py-2.5 px-3 text-[9px] font-bold uppercase tracking-wider text-slate-400">Time</th>
+                      <th className="py-2.5 px-3 text-[9px] font-bold uppercase tracking-wider text-slate-400">Room</th>
+                      <th className="py-2.5 px-3 text-[9px] font-bold uppercase tracking-wider text-slate-400">Round</th>
+                      <th className="py-2.5 px-3 text-[9px] font-bold uppercase tracking-wider text-slate-400">Words Sent</th>
+                      <th className="py-2.5 px-3 text-[9px] font-bold uppercase tracking-wider text-slate-400">AI Response</th>
+                      <th className="py-2.5 px-3 text-[9px] font-bold uppercase tracking-wider text-slate-400">Latency</th>
+                      <th className="py-2.5 px-3 text-[9px] font-bold uppercase tracking-wider text-slate-400">Status</th>
+                      <th className="py-2.5 px-3 text-[9px] font-bold uppercase tracking-wider text-slate-400">Source</th>
+                      <th className="py-2.5 px-3 text-[9px] font-bold uppercase tracking-wider text-slate-400">Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {geminiLogs.map((log, idx) => (
+                      <tr key={idx} className="border-b border-slate-900/40 hover:bg-white/[0.01] transition-all">
+                        <td className="py-2 px-3 text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                          {new Date(log.timestamp).toLocaleTimeString()}
+                        </td>
+                        <td className="py-2 px-3 text-xs font-bold text-slate-200 font-mono">
+                          {log.room_code || '—'}
+                        </td>
+                        <td className="py-2 px-3 text-xs text-slate-300 font-mono">
+                          {log.round_number || '—'}
+                        </td>
+                        <td className="py-2 px-3 text-[11px] text-slate-300 font-mono max-w-[250px] truncate" title={log.inputs.join(', ')}>
+                          {log.inputs.join(', ')}
+                        </td>
+                        <td className="py-2 px-3 text-[10px] text-violet-300 font-mono max-w-[250px] truncate" title={JSON.stringify(log.response)}>
+                          {JSON.stringify(log.response)}
+                        </td>
+                        <td className="py-2 px-3 text-[10px] text-slate-400 font-mono">
+                          {log.latency_ms > 0 ? `${log.latency_ms}ms` : '—'}
+                        </td>
+                        <td className="py-2 px-3">
+                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${
+                            log.status_code === 200
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                          }`}>
+                            {log.status_code || '—'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-3">
+                          {log.cached ? (
+                            <span className="text-[9px] font-bold bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 uppercase">Cache</span>
+                          ) : (
+                            <span className="text-[9px] font-bold bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/20 uppercase">API</span>
+                          )}
+                        </td>
+                        <td className="py-2 px-3 text-[10px] text-red-400 max-w-[150px] truncate" title={log.error}>
+                          {log.error || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-[9px] text-slate-500 pt-1">
+              <span>{geminiLogs.length} log entries</span>
               <span>Max retained: 500 entries (FIFO)</span>
             </div>
           </div>
