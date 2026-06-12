@@ -150,6 +150,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     }
   };
 
+  const handleDeclareWinner = async (roomCode: string) => {
+    try {
+      await apiClient.post(`/games/admin/declare-winner/${roomCode}`);
+      alert("Winner declared successfully! Players will see the final champion screen.");
+      fetchRooms();
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to declare winner.");
+    }
+  };
+
   // Fetch rooms on page change
   useEffect(() => {
     fetchRooms(currentPage);
@@ -568,6 +578,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                             <span className="text-slate-550 font-bold uppercase text-[9px] tracking-wider">Created At:</span>
                             <span className="text-slate-400">{new Date(room.created_at).toLocaleString()}</span>
                           </div>
+                          
+                          {room.status === 'active' && (
+                            <button
+                              onClick={() => handleDeclareWinner(room.room_code)}
+                              className="w-full mt-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black text-[10px] uppercase tracking-widest shadow-[0_0_15px_rgba(245,158,11,0.3)] transition-all active:scale-[0.98] cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              <Crown className="w-3.5 h-3.5" />
+                              {room.current_round >= room.total_rounds ? "Declare Final Results" : "End Game & Declare Winner"}
+                            </button>
+                          )}
                         </div>
                       </div>
 

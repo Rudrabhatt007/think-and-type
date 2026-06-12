@@ -59,12 +59,12 @@ export const AnswerForm: React.FC<AnswerFormProps> = ({
     }
   }, [isRevealing, letter]);
 
-  // Auto-submit whatever has been typed when the active timer reaches 1 second
+  // Auto-submit whatever has been typed when the active timer reaches 1 second or less (and setup phase is complete)
   useEffect(() => {
-    if (timeRemaining === 1 && !submittedRef.current) {
+    if (!isSetupPhase && timeRemaining <= 1 && !submittedRef.current) {
       onSubmit(answers);
     }
-  }, [timeRemaining, onSubmit, answers]);
+  }, [timeRemaining, isSetupPhase, onSubmit, answers]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
