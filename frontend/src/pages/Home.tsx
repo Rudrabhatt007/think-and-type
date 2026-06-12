@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, ShieldAlert } from 'lucide-react';
+import { ChevronRight, ShieldAlert, X, BookOpen } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { authApi, gamesApi } from '../api';
 
@@ -28,6 +28,7 @@ export const Home: React.FC<HomeProps> = ({ onJoinRoom, onOpenAdmin }) => {
 
   // UI state
   const [showForm, setShowForm] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   const handleAdminLogin = () => {
     setError('');
@@ -122,13 +123,21 @@ export const Home: React.FC<HomeProps> = ({ onJoinRoom, onOpenAdmin }) => {
               One letter. Four categories. Ten seconds to vote. How fast can your brain spark a Name, Animal, Place, and Thing?
             </p>
             
-            <div className="mt-6 md:mt-8">
+            <div className="mt-6 md:mt-8 flex flex-col sm:flex-row gap-4 justify-center items-center">
               <button 
                 onClick={() => setShowForm(true)}
-                className="relative font-black text-lg md:text-xl text-indigo-950 px-8 md:px-12 py-4 md:py-5 rounded-[16px] md:rounded-[20px] bg-gradient-to-br from-emerald-300 to-emerald-500 shadow-[0_16px_40px_rgba(16,217,160,0.5),inset_0_-4px_0_rgba(0,0,0,0.12)] hover:-translate-y-1 hover:scale-105 transition-transform active:translate-y-1"
+                className="relative font-black text-lg md:text-xl text-indigo-950 px-8 md:px-12 py-4 md:py-5 rounded-[16px] md:rounded-[20px] bg-gradient-to-br from-emerald-300 to-emerald-500 shadow-[0_16px_40px_rgba(16,217,160,0.5),inset_0_-4px_0_rgba(0,0,0,0.12)] hover:-translate-y-1 hover:scale-105 transition-transform active:translate-y-1 w-full sm:w-auto cursor-pointer"
               >
                 <span className="absolute -inset-1 rounded-[24px] -z-10 bg-[conic-gradient(from_0deg,var(--emerald),var(--purple),var(--pink),var(--emerald))] blur-[14px] opacity-60 animate-[spin_5s_linear_infinite]" />
                 ▶ Play Now
+              </button>
+              
+              <button 
+                onClick={() => setShowHowToPlay(true)}
+                className="font-bold text-base md:text-lg text-slate-200 px-8 md:px-10 py-4 md:py-5 rounded-[16px] md:rounded-[20px] bg-slate-900/60 border border-slate-700/60 hover:bg-slate-800/80 hover:text-white transition-all hover:-translate-y-1 w-full sm:w-auto flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+              >
+                <BookOpen className="w-5 h-5 text-indigo-400" />
+                How to Play
               </button>
             </div>
           </motion.section>
@@ -282,6 +291,135 @@ export const Home: React.FC<HomeProps> = ({ onJoinRoom, onOpenAdmin }) => {
               ← Back to Home
             </button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showHowToPlay && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowHowToPlay(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+            
+            {/* Modal Body */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-slate-900/90 border border-slate-700/50 rounded-3xl p-6 md:p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-10 scrollbar-thin scrollbar-thumb-slate-800"
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setShowHowToPlay(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-xl text-indigo-400 border border-indigo-500/30">
+                  📖
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-100 uppercase tracking-wide">
+                    How to Play
+                  </h2>
+                  <p className="text-slate-400 text-xs font-semibold">
+                    Think & Type Game Rules & Instructions
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4 text-slate-300 text-sm md:text-base">
+                {/* Step 1 */}
+                <div className="flex gap-4 items-start p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-black flex-shrink-0 border border-emerald-500/30">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-100 text-base mb-1">Create or Join a Lobby</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">
+                      Enter your <strong>First Name</strong>, <strong>Last Name</strong>, and pick a custom avatar character. If you're a host, generate a room code. If you're a player, paste the code shared by the host to join!
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 2 */}
+                <div className="flex gap-4 items-start p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-black flex-shrink-0 border border-purple-500/30">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-100 text-base mb-1">Round & Letter Selection</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">
+                      Each round starts with a quick animation showing the round number, followed by a fast-spinning letters animation that locks onto a random target letter for that round.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 3 */}
+                <div className="flex gap-4 items-start p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center font-black flex-shrink-0 border border-amber-500/30">
+                    3
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-100 text-base mb-1">Type Under Pressure</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">
+                      Type answers that start with the target letter across 4 categories: <strong>Name</strong>, <strong>Place</strong>, <strong>Animal</strong>, and <strong>Thing</strong>. Be quick! The countdown timer is ticking.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 4 */}
+                <div className="flex gap-4 items-start p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-black flex-shrink-0 border border-blue-500/30">
+                    4
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-100 text-base mb-1">Audit Phase (Vetoing)</h3>
+                    <p className="text-slate-400 text-sm leading-relaxed">
+                      After typing, all submissions are displayed to everyone. Players vote on each other's answers. If an answer is misspelled or incorrect, click to reject (veto) it! 
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 5 */}
+                <div className="flex gap-4 items-start p-4 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="w-8 h-8 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center font-black flex-shrink-0 border border-pink-500/30">
+                    5
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-100 text-base mb-1">Scoring & Leaderboard</h3>
+                    <div className="text-slate-400 text-sm leading-relaxed">
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li><strong>10 Points</strong> for a unique, correct answer.</li>
+                        <li><strong>5 Points</strong> if you entered a correct answer that someone else also wrote.</li>
+                        <li><strong>0 Points</strong> if empty, incorrect, or vetoed.</li>
+                      </ul>
+                      <p className="mt-2 text-slate-300 font-semibold">
+                        The player with the highest total score at the end of all rounds wins!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={() => setShowHowToPlay(false)}
+                  className="px-6 py-3 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-bold rounded-xl text-sm uppercase tracking-wider transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-lg"
+                >
+                  Got it, Let's Play!
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>
